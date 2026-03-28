@@ -1,0 +1,25 @@
+apiVersion: v2
+name: my-app
+description: >
+  Producer → RabbitMQ → Consumer demo stack.
+  Deploys three containers: a Python producer, RabbitMQ message broker,
+  and a Python consumer. Used for hands-on learning of Docker, Kubernetes, and Helm.
+
+# Chart version — bump this when you change the chart structure/templates
+version: 0.1.0
+
+# App version — the version of the application this chart deploys
+appVersion: "1.0.0"
+
+type: application
+
+keywords:
+  - rabbitmq
+  - producer
+  - consumer
+  - messaging
+  - demo
+
+maintainers:
+  - name: Your Name
+    email: your@email.com

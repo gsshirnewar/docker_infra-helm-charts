@@ -1,0 +1,56 @@
+# =============================================================
+# Producer Deployment
+# Container 1: Python app that sends messages to RabbitMQ
+# =============================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: producer
+  labels:
+    app: producer
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+spec:
+  replicas: {{ .Values.producer.replicaCount }}
+  selector:
+    matchLabels:
+      app: producer
+  template:
+    metadata:
+      labels:
+        app: producer
+    spec:
+      # Wait for RabbitMQ to be ready before starting the producer
+      initContainers:
+        - name: wait-for-rabbitmq
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z rabbitmq {{ .Values.rabbitmq.service.amqpPort }}; do
+                echo "Waiting for RabbitMQ..."
+                sleep 2
+              done
+              echo "RabbitMQ is ready!"
+
+      containers:
+        - name: producer
+          image: {{ .Values.producer.image }}
+          imagePullPolicy: Always
+          env:
+            # Point to RabbitMQ service by its Kubernetes DNS name
+            - name: RABBITMQ_HOST
+              value: "rabbitmq"
+            - name: RABBITMQ_PORT
+              value: {{ .Values.rabbitmq.service.amqpPort | quote }}
+            - name: RABBITMQ_USER
+              value: {{ .Values.rabbitmq.auth.username | quote }}
+            - name: RABBITMQ_PASS
+              value: {{ .Values.rabbitmq.auth.password | quote }}
+            - name: QUEUE_NAME
+              value: {{ .Values.producer.env.QUEUE_NAME | quote }}
+            - name: MESSAGE_INTERVAL
+              value: {{ .Values.producer.env.MESSAGE_INTERVAL | quote }}
+          resources:
+            {{- toYaml .Values.producer.resources | nindent 12 }}
+      restartPolicy: {{ .Values.producer.restartPolicy }}

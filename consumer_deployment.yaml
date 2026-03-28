@@ -1,0 +1,53 @@
+# =============================================================
+# Consumer Deployment
+# Container 3: Python app that reads messages from RabbitMQ
+# =============================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: consumer
+  labels:
+    app: consumer
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+spec:
+  replicas: {{ .Values.consumer.replicaCount }}
+  selector:
+    matchLabels:
+      app: consumer
+  template:
+    metadata:
+      labels:
+        app: consumer
+    spec:
+      # Wait for RabbitMQ to be ready before starting the consumer
+      initContainers:
+        - name: wait-for-rabbitmq
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z rabbitmq {{ .Values.rabbitmq.service.amqpPort }}; do
+                echo "Waiting for RabbitMQ..."
+                sleep 2
+              done
+              echo "RabbitMQ is ready!"
+
+      containers:
+        - name: consumer
+          image: {{ .Values.consumer.image }}
+          imagePullPolicy: Always
+          env:
+            - name: RABBITMQ_HOST
+              value: "rabbitmq"
+            - name: RABBITMQ_PORT
+              value: {{ .Values.rabbitmq.service.amqpPort | quote }}
+            - name: RABBITMQ_USER
+              value: {{ .Values.rabbitmq.auth.username | quote }}
+            - name: RABBITMQ_PASS
+              value: {{ .Values.rabbitmq.auth.password | quote }}
+            - name: QUEUE_NAME
+              value: {{ .Values.consumer.env.QUEUE_NAME | quote }}
+          resources:
+            {{- toYaml .Values.consumer.resources | nindent 12 }}
+      restartPolicy: {{ .Values.consumer.restartPolicy }}

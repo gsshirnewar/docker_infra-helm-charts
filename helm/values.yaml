@@ -1,0 +1,76 @@
+# =============================================================================
+# DEFAULT VALUES — infra-helm-charts/charts/my-app/values.yaml
+#
+# These are BASE defaults only. Environment-specific overrides live in:
+#   infra-gitops-config/environments/<env>/values.yaml
+#
+# DO NOT put image tags here — those are managed by CI/CD in infra-gitops-config.
+# =============================================================================
+
+# ---------------------
+# Producer configuration
+# ---------------------
+producer:
+  # Image is overridden per-environment by infra-gitops-config
+  image: yourusername/my-producer:latest
+  replicaCount: 1
+
+  env:
+    QUEUE_NAME: "hello"
+    MESSAGE_INTERVAL: "2"
+    # RABBITMQ_HOST is injected automatically from the service name
+
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "200m"
+      memory: "128Mi"
+
+  # Restart if container crashes
+  restartPolicy: Always
+
+# ---------------------
+# Consumer configuration
+# ---------------------
+consumer:
+  image: yourusername/my-consumer:latest
+  replicaCount: 1
+
+  env:
+    QUEUE_NAME: "hello"
+
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "200m"
+      memory: "128Mi"
+
+  restartPolicy: Always
+
+# ---------------------
+# RabbitMQ configuration
+# ---------------------
+rabbitmq:
+  # Use official image with management UI (no custom code needed)
+  image: rabbitmq:3-management
+  replicaCount: 1
+
+  auth:
+    username: guest
+    password: guest
+
+  service:
+    amqpPort: 5672      # messaging port used by producer/consumer
+    managementPort: 15672  # web UI port (access via port-forward)
+
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
